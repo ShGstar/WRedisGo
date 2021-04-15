@@ -3,7 +3,6 @@ package WRedisPackage
 import (
 	"github.com/garyburd/redigo/redis"
 	"log"
-	"time"
 )
 
 type RedisProcessor struct {
@@ -12,11 +11,6 @@ type RedisProcessor struct {
 	mDBNum         int
 	mThreadsNum    int
 	connMap        map[*redis.Conn]bool
-
-	redisPool   *redis.Pool
-	MaxActive   int
-	MaxIdle     int
-	IdleTimeout time.Duration
 }
 
 var (
@@ -40,33 +34,6 @@ func RedisInit(address string, password string, threadsNum int, dbNum int) {
 	instance.mDBNum = dbNum
 	instance.mPassword = password
 	instance.mThreadsNum = threadsNum
-}
-
-func RedisPoolInit(active int, idle int, idletimeout time.Duration) {
-	if instance == nil {
-		instance = &RedisProcessor{}
-	}
-	instance.MaxActive = active
-	instance.MaxIdle = idle
-	instance.IdleTimeout = idletimeout
-}
-
-func (m *RedisProcessor) StartRedisPool() {
-	redisPool := &redis.Pool{
-		MaxActive:   m.MaxActive,   //100 最大闲置连接
-		MaxIdle:     m.MaxIdle,     //10 最大活动连接数 0等于无限
-		IdleTimeout: m.IdleTimeout, //10 闲置连接的超时时间
-		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", m.mServerAddress, redis.DialPassword(m.mPassword), redis.DialDatabase(m.mDBNum))
-		}}
-	m.redisPool = redisPool
-}
-
-func (m *RedisProcessor) StopRedisPool() {
-	err := m.redisPool.Close()
-	if err != nil {
-		log.Panic(err)
-	}
 }
 
 func (m *RedisProcessor) RedisDial() redis.Conn {
