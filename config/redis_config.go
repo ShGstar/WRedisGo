@@ -28,11 +28,11 @@ func ConfigInit() {
 
 	log.Println("yamlFile:", yamlFile)
 	if err != nil {
-		log.Print("yamkFile.Get err %#v", err)
+		log.Print("yamkFile.Get err ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, Conf)
 	if err != nil {
-		log.Print("Unmarshal.Get err %#v", err)
+		log.Print("Unmarshal.Get err ", err)
 	}
 
 	log.Println("conf", Conf)

@@ -1,6 +1,7 @@
 package WRedisPackage
 
 import (
+	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"log"
 )
@@ -36,23 +37,28 @@ func RedisInit(address string, password string, threadsNum int, dbNum int) {
 	instance.mThreadsNum = threadsNum
 }
 
-func (m *RedisProcessor) RedisDial() redis.Conn {
-	conn, err := redis.Dial("tcp", m.mServerAddress,
-		redis.DialPassword(m.mPassword), redis.DialDatabase(m.mDBNum))
-	if err != nil {
-		log.Panicf("Redis Connect Error : %v", err)
+func (m *RedisProcessor) RedisDial(dialnum int) {
+	for i := 0; i < dialnum; i++ {
+		conn, err := redis.Dial("tcp", m.mServerAddress,
+			redis.DialPassword(m.mPassword), redis.DialDatabase(m.mDBNum))
+		if err != nil {
+			log.Panicf("Redis Connect Error : %v", err)
+		}
+		m.connMap[&conn] = true
 	}
-	m.connMap[&conn] = true
-	return conn
+	fmt.Printf("RedisDial %d success ", dialnum)
 }
 
 func (m *RedisProcessor) Close() {
+	closed := 0
 	for conn := range m.connMap {
 		err := (*conn).Close()
 		if err != nil {
 			log.Panic(err)
 		}
+		closed++
 	}
+	fmt.Printf("Redis connMap %d close successful ", closed)
 }
 
 /*获得Redis连接*/
