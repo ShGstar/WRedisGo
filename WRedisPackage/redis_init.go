@@ -10,8 +10,15 @@ type RedisProcessor struct {
 	mServerAddress string
 	mPassword      string
 	mDBNum         int
-	mThreadsNum    int
+	mThreadsNum    int //开启N个conn N个协程并发
 	connMap        map[*redis.Conn]bool
+	Done           chan interface{}
+	close          chan interface{}
+	taksFIFO       chan *connTask
+}
+type connTask struct {
+	cmd  string
+	args []interface{}
 }
 
 var (
@@ -29,34 +36,57 @@ func GetInstance() *RedisProcessor {
 func RedisInit(address string, password string, threadsNum int, dbNum int) {
 	if instance == nil {
 		instance = &RedisProcessor{}
+		instance.connMap = make(map[*redis.Conn]bool)
 	}
 
 	instance.mServerAddress = address
 	instance.mDBNum = dbNum
 	instance.mPassword = password
 	instance.mThreadsNum = threadsNum
+	instance.Done = make(chan interface{})
+	instance.close = make(chan interface{}, threadsNum)
 }
 
-func (m *RedisProcessor) RedisDial(dialnum int) {
-	for i := 0; i < dialnum; i++ {
+func (m *RedisProcessor) RedisDial() {
+	for i := 0; i < m.mThreadsNum; i++ {
 		conn, err := redis.Dial("tcp", m.mServerAddress,
 			redis.DialPassword(m.mPassword), redis.DialDatabase(m.mDBNum))
 		if err != nil {
 			log.Panicf("Redis Connect Error : %v", err)
 		}
 		m.connMap[&conn] = true
+
+		go m.ConnRecover(&conn)
 	}
-	fmt.Printf("RedisDial %d success ", dialnum)
+	fmt.Printf("RedisDial %d success ", m.mThreadsNum)
+}
+
+func (m *RedisProcessor) ConnRecover(conn *redis.Conn) {
+	for {
+		select {
+
+		case <-m.close:
+			m.Done <- "close conn Goroutinue"
+			return
+		}
+	}
 }
 
 func (m *RedisProcessor) Close() {
+	close(m.close)
 	closed := 0
 	for conn := range m.connMap {
 		err := (*conn).Close()
 		if err != nil {
 			log.Panic(err)
+			continue
 		}
 		closed++
+	}
+
+	//wait conn Goroutinue done
+	for i := 0; i < m.mThreadsNum; i++ {
+		<-m.Done
 	}
 	fmt.Printf("Redis connMap %d close successful ", closed)
 }
