@@ -1,4 +1,4 @@
-package WRedisPackage
+package wRedisPackage
 
 import (
 	"fmt"
@@ -17,8 +17,10 @@ type RedisProcessor struct {
 	taksFIFO       chan *connTask
 }
 type connTask struct {
-	cmd  string
-	args []interface{}
+	cmd           string
+	args          []interface{}
+	TaskResult    chan interface{}
+	luaTaskScript *redis.Script
 }
 
 var (
@@ -45,6 +47,7 @@ func RedisInit(address string, password string, threadsNum int, dbNum int) {
 	instance.mThreadsNum = threadsNum
 	instance.Done = make(chan interface{})
 	instance.close = make(chan interface{}, threadsNum)
+	instance.taksFIFO = make(chan *connTask, 10)
 }
 
 func (m *RedisProcessor) RedisDial() {
@@ -56,20 +59,45 @@ func (m *RedisProcessor) RedisDial() {
 		}
 		m.connMap[&conn] = true
 
-		go m.ConnRecover(&conn)
+		go m.ConnRecover(&conn, i)
 	}
-	fmt.Printf("RedisDial %d success ", m.mThreadsNum)
+	fmt.Printf("RedisDial %d success \n", m.mThreadsNum)
 }
 
-func (m *RedisProcessor) ConnRecover(conn *redis.Conn) {
+func (m *RedisProcessor) ConnRecover(conn *redis.Conn, goruntinueNum int) {
 	for {
 		select {
-
+		case task := <-m.taksFIFO:
+			if task.luaTaskScript != nil {
+				value, err := (*task.luaTaskScript).Do(*conn, task.cmd, task.args)
+				if err != nil {
+					fmt.Println("lua conn do err :", err)
+				}
+				task.TaskResult <- value
+				fmt.Println("lua conn goruntinueNum :", goruntinueNum, " is processing ,", task.cmd, " ", task.args)
+			} else {
+				value, err := (*conn).Do(task.cmd, task.args...)
+				if err != nil {
+					fmt.Println("conn do err :", err)
+				}
+				task.TaskResult <- value
+				fmt.Println("goruntinueNum :", goruntinueNum, " is processing ,", task.cmd, " ", task.args)
+			}
 		case <-m.close:
 			m.Done <- "close conn Goroutinue"
+			fmt.Println("goruntinueNum is close :", goruntinueNum)
 			return
 		}
 	}
+}
+
+func (m *RedisProcessor) PushTaskDo(cmd string, args ...interface{}) *connTask {
+	task := &connTask{}
+	task.cmd = cmd
+	task.args = args
+	task.TaskResult = make(chan interface{}, 1)
+	m.taksFIFO <- task
+	return task
 }
 
 func (m *RedisProcessor) Close() {
@@ -88,21 +116,5 @@ func (m *RedisProcessor) Close() {
 	for i := 0; i < m.mThreadsNum; i++ {
 		<-m.Done
 	}
-	fmt.Printf("Redis connMap %d close successful ", closed)
+	fmt.Printf("Redis connMap %d close successful \n", closed)
 }
-
-/*获得Redis连接*/
-//通过redis连接池
-/*func GetRedisConn() redis.Conn {
-	if &RedisProcessor. == nil{
-		str := config.Conf.Redis.Host+":"+config.Conf.Redis.Port
-		redisPool = &redis.Pool{
-			MaxActive:   100,
-			MaxIdle:     10,
-			IdleTimeout: 10,
-			Dial: func() (redis.Conn, error) {
-				return redis.Dial("tcp", str)
-			}}
-	}
-	return redisPool.Get()
-}*/

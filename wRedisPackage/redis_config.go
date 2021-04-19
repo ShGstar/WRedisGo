@@ -1,4 +1,4 @@
-package WRedisPackage
+package wRedisPackage
 
 import (
 	"github.com/go-yaml/yaml"
