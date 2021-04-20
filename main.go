@@ -8,15 +8,22 @@ import (
 
 func main() {
 	app.ConfigInit()
-	app.RedisInit(app.Conf.Redis.Address, app.Conf.Redis.Password, app.Conf.Redis.ThreadsNum, 0)
-	app.GetInstance().RedisDial()
-	defer app.GetInstance().Close()
+	/*
+		app.RedisInit(app.Conf.Redis.Address, app.Conf.Redis.Password, app.Conf.Redis.ThreadsNum, 0)
+		app.GetInstance().RedisDial()
+		defer app.GetInstance().Close()*/
 
-	app.RedisLuaInit()
+	app.RedisPoolInit(app.Conf.Redis.Address, app.Conf.Redis.Password, app.Conf.Redis.DBNum,
+		app.Conf.Redis.MaxActive, app.Conf.Redis.MaxIdle, app.Conf.Redis.Idletimeout)
 
-	test.TestStart()
+	defer app.GetPoolInstance().StopRedisPool()
 
+	//app.RedisLuaInit()
+
+	//test.TestStart()
+	app.GetPoolInstance().RedisPoolStart()
+	test.TestRedisLool()
 	//fmt.Println("redis test")
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 1000)
 }

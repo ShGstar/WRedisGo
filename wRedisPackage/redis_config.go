@@ -8,12 +8,13 @@ import (
 
 type Yaml struct {
 	Redis struct {
-		Address    string `yaml:"Address"`
-		Password   string `yaml:"Password"`
-		DBNum      int    `yaml:"DBNum"`
-		ThreadsNum int    `yaml:"ThreadsNum"`
-		MaxActive  int    `yaml:"MaxActive"`
-		MaxIdle    int    `yaml:"MaxIdle"`
+		Address     string `yaml:"Address"`
+		Password    string `yaml:"Password"`
+		DBNum       int    `yaml:"DBNum"`
+		ThreadsNum  int    `yaml:"ThreadsNum"`
+		MaxActive   int    `yaml:"MaxActive"`
+		MaxIdle     int    `yaml:"MaxIdle"`
+		Idletimeout int    `yaml:"Idletimeout"`
 	} `yaml:"Redis"`
 }
 

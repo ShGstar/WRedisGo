@@ -14,10 +14,10 @@ type RedisProcessor struct {
 	connMap        map[*redis.Conn]bool
 	Done           chan interface{}
 	close          chan interface{}
-	taksFIFO       chan *connTask
+	taksFIFO       chan *ConnTask
 }
 
-type connTask struct {
+type ConnTask struct {
 	cmd           string
 	args          []interface{}
 	TaskResult    chan interface{}
@@ -48,7 +48,7 @@ func RedisInit(address string, password string, threadsNum int, dbNum int) {
 	instance.mThreadsNum = threadsNum
 	instance.Done = make(chan interface{})
 	instance.close = make(chan interface{}, threadsNum)
-	instance.taksFIFO = make(chan *connTask, 10)
+	instance.taksFIFO = make(chan *ConnTask, 1000)
 }
 
 func (m *RedisProcessor) RedisDial() {
@@ -92,8 +92,8 @@ func (m *RedisProcessor) ConnRecover(conn *redis.Conn, goruntinueNum int) {
 	}
 }
 
-func (m *RedisProcessor) PushTaskDo(cmd string, args ...interface{}) *connTask {
-	task := &connTask{}
+func (m *RedisProcessor) PushTaskDo(cmd string, args ...interface{}) *ConnTask {
+	task := &ConnTask{}
 	task.cmd = cmd
 	task.args = args
 	task.TaskResult = make(chan interface{}, 1)
@@ -101,8 +101,8 @@ func (m *RedisProcessor) PushTaskDo(cmd string, args ...interface{}) *connTask {
 	return task
 }
 
-func (m *RedisProcessor) PushTaskLuaScrpit(luaname string, args ...interface{}) *connTask {
-	task := &connTask{}
+func (m *RedisProcessor) PushTaskLuaScrpit(luaname string, args ...interface{}) *ConnTask {
+	task := &ConnTask{}
 	//task.cmd = nil
 	task.args = args
 	task.TaskResult = make(chan interface{}, 1)

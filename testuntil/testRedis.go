@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	MAX_GORUNTINUE       = 100
-	MAX_GORUNTINUE_NAMES = 10
+	MAX_GORUNTINUE       = 1000
+	MAX_GORUNTINUE_NAMES = 100
 )
 
 var (
@@ -61,6 +61,37 @@ func TestStart() {
 		group.Add(1)
 		//testgoruntinueSet(&group)
 		TestRedisLua(&group)
+	}
+
+	group.Wait()
+	fmt.Println("TestStart over ,successN/failN :", successN, " ", failN)
+}
+
+//pool test
+
+func gotopooltest(group *sync.WaitGroup) {
+
+	name := GetRandomName()
+	value := GetRandomInt(0, 100)
+	task := wRedis.GetPoolInstance().PushPoolTaskDo("set", name+"20210420", value)
+	res := <-task.TaskResult
+	if valueRes, ok := res.(string); ok && valueRes == "OK" {
+		successN++
+		//fmt.Println(valueRes)
+	} else {
+		fmt.Println("faile valueRes:", valueRes)
+		failN++
+	}
+
+	group.Done()
+}
+
+func TestRedisLool() {
+	group := sync.WaitGroup{}
+
+	for i := 0; i < MAX_GORUNTINUE; i++ {
+		group.Add(1)
+		gotopooltest(&group)
 	}
 
 	group.Wait()

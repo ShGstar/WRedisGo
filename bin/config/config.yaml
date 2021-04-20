@@ -1,7 +1,8 @@
 Redis:
   Address : 127.0.0.1:6379
   Password :
-  ThreadsNum : 5
+  ThreadsNum : 10
   DBNum : 0
-  MaxActive : 0
-  MaxIdle : 0
+  MaxActive : 100
+  MaxIdle : 10
+  Idletimeout : 10

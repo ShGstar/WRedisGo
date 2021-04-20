@@ -1,1 +1,7 @@
 Goland Reisd库封装
+
+1.高性能封装redigo库
+2.普通Redis conn模式，支持N个conn连接并发
+3.redigo Pool模式，通过redis loop连接
+4.两种都支持高并发
+5.支持redis lua原子操作
