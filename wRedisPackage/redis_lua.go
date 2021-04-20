@@ -29,6 +29,14 @@ func (m *RedisLuaCache) setLuaAndKeyCount() {
 	m.luafilenames["getName.lua"] = 1
 }
 
+func (m *RedisLuaCache) GetLuaScrpit(luaname string) *redis.Script {
+	if script, ok := m.loadShaMap[luaname]; ok {
+		return script
+	}
+	fmt.Println("Not Find GetLuaScrpit :", luaname)
+	return nil
+}
+
 func RedisLuaInit() {
 	if instanceLua == nil {
 		instanceLua = &RedisLuaCache{}
@@ -47,8 +55,7 @@ func RedisLuaInit() {
 
 		luafile := string(bytes)
 		script := redis.NewScript(keycount, luafile)
-		instanceLua.loadShaMap[luafile] = script
+		instanceLua.loadShaMap[filename[:len(filename)-4]] = script
 		fmt.Println("loadShaMap lua name: ", filename, "  keycount:", keycount)
 	}
-
 }

@@ -16,6 +16,7 @@ type RedisProcessor struct {
 	close          chan interface{}
 	taksFIFO       chan *connTask
 }
+
 type connTask struct {
 	cmd           string
 	args          []interface{}
@@ -69,7 +70,7 @@ func (m *RedisProcessor) ConnRecover(conn *redis.Conn, goruntinueNum int) {
 		select {
 		case task := <-m.taksFIFO:
 			if task.luaTaskScript != nil {
-				value, err := (*task.luaTaskScript).Do(*conn, task.cmd, task.args)
+				value, err := (*task.luaTaskScript).Do(*conn, task.args...)
 				if err != nil {
 					fmt.Println("lua conn do err :", err)
 				}
@@ -96,6 +97,16 @@ func (m *RedisProcessor) PushTaskDo(cmd string, args ...interface{}) *connTask {
 	task.cmd = cmd
 	task.args = args
 	task.TaskResult = make(chan interface{}, 1)
+	m.taksFIFO <- task
+	return task
+}
+
+func (m *RedisProcessor) PushTaskLuaScrpit(luaname string, args ...interface{}) *connTask {
+	task := &connTask{}
+	//task.cmd = nil
+	task.args = args
+	task.TaskResult = make(chan interface{}, 1)
+	task.luaTaskScript = GetRedisLuaCache().GetLuaScrpit(luaname)
 	m.taksFIFO <- task
 	return task
 }

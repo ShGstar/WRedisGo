@@ -37,11 +37,20 @@ func testgoruntinueSet(group *sync.WaitGroup) {
 
 func TestRedisLua(group *sync.WaitGroup) {
 	for i := 0; i < MAX_GORUNTINUE_NAMES; i++ {
-		/*instance := wRedis.GetInstance()
 		name := GetRandomName()
-		value := GetRandomInt(0, 100)*/
-
+		value := GetRandomInt(0, 100)
+		taskDolua := wRedis.GetInstance().PushTaskLuaScrpit("testSetName", name+"20210420", value)
+		res := <-taskDolua.TaskResult
+		if valueRes, ok := res.(string); ok && valueRes == "OK" {
+			successN++
+			//fmt.Println(valueRes)
+		} else {
+			fmt.Println("faile valueRes:", valueRes)
+			failN++
+		}
 	}
+
+	group.Done()
 }
 
 func TestStart() {
@@ -51,6 +60,7 @@ func TestStart() {
 	for i := 0; i < MAX_GORUNTINUE; i++ {
 		group.Add(1)
 		//testgoruntinueSet(&group)
+		TestRedisLua(&group)
 	}
 
 	group.Wait()
